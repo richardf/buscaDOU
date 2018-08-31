@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
 	"github.com/asaskevich/govalidator"
 	"github.com/julienschmidt/httprouter"
 	"log"
@@ -27,13 +26,19 @@ func main() {
 	router.POST("/keyword", AddKeyword)
 	router.POST("/email/:id/confirm", ConfirmEmail)
 
-	log.Fatal(http.ListenAndServe(":8080", router))
+	log.Fatal(http.ListenAndServe(":8080", middleware(router)))
+}
+
+func middleware(handler http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		handler.ServeHTTP(w, r)
+	})
 }
 
 func AddKeyword(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	req := AddKeywordRequest{}
 	json.NewDecoder(r.Body).Decode(&req)
-	w.Header().Set("Content-Type", "application/json")
 
 	if ok, err := govalidator.ValidateStruct(req); ok {
 		json.NewEncoder(w).Encode(&Response{Errors: err})
@@ -44,5 +49,6 @@ func AddKeyword(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 }
 
 func ConfirmEmail(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-	fmt.Fprintf(w, "Hello, %s\n", ps.ByName("id"))
+	ps.ByName("id")
+	json.NewEncoder(w).Encode(&Response{})
 }
